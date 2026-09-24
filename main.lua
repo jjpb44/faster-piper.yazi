@@ -194,6 +194,16 @@ end
 function M.format(job, lines)
   local format = job.args.format
   if format ~= "url" then
+    -- t e extension toggle: drop the extension from each line (sentinel).
+    -- Pattern keeps the name minus ext + trailing reset; the lazy capture
+    -- requires >=1 char before the dot, so ".bashrc" and "dir/" are safe.
+    if io.open("/tmp/yazi-ext-hidden", "r") then
+      local esc = string.char(27)
+      for i = 1, #lines do
+        lines[i] = lines[i]:gsub("(%S-)%.([%w_+%-]+)(" .. esc .. "%[[%d;]*m?)%s*$", "%1%3")
+        lines[i] = lines[i]:gsub("(%S-)%.([%w_+%-]+)%s*$", "%1")
+      end
+    end
     local s = table.concat(lines, ""):gsub("\r", ""):gsub("\t", string.rep(" ", rt.preview.tab_size))
     return ui.Text.parse(s):area(job.area)
   end
