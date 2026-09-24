@@ -194,16 +194,6 @@ end
 function M.format(job, lines)
   local format = job.args.format
   if format ~= "url" then
-    -- t e extension toggle: drop the extension from each line (sentinel).
-    -- Pattern keeps the name minus ext + trailing reset; the lazy capture
-    -- requires >=1 char before the dot, so ".bashrc" and "dir/" are safe.
-    if io.open("/tmp/yazi-ext-hidden", "r") then
-      local esc = string.char(27)
-      for i = 1, #lines do
-        lines[i] = lines[i]:gsub("(%S-)%.([%w_+%-]+)(" .. esc .. "%[[%d;]*m?)%s*$", "%1%3")
-        lines[i] = lines[i]:gsub("(%S-)%.([%w_+%-]+)%s*$", "%1")
-      end
-    end
     local s = table.concat(lines, ""):gsub("\r", ""):gsub("\t", string.rep(" ", rt.preview.tab_size))
     return ui.Text.parse(s):area(job.area)
   end
@@ -881,6 +871,18 @@ function M:peek(job)
   if job.args.format == "url" then
     ya.preview_widget(job, M.format(job, split_lines(slice)))
   else
+    -- t e extension toggle: per-line strip on the TEXT preview path (the
+    -- folder tree from eza lands here, not through M.format). The lazy
+    -- capture needs >=1 char before the dot, so ".bashrc" and "dir/" are safe.
+    if io.open("/tmp/yazi-ext-hidden", "r") then
+      local esc, out = string.char(27), {}
+      for raw in (slice .. "\n"):gmatch("(.-)\n") do
+        local ln = raw:gsub("(%S-)%.([%w_+%-]+)(" .. esc .. "%[[%d;]*m?)%s*$", "%1%3")
+        ln = ln:gsub("(%S-)%.([%w_+%-]+)%s*$", "%1")
+        out[#out + 1] = ln
+      end
+      slice = table.concat(out, "\n") .. "\n"
+    end
     ya.preview_widget(job, ui.Text.parse(slice):area(job.area))
   end
 end
