@@ -874,7 +874,18 @@ function M:peek(job)
     -- t e extension toggle: per-line strip on the TEXT preview path (the
     -- folder tree from eza lands here, not through M.format). The lazy
     -- capture needs >=1 char before the dot, so ".bashrc" and "dir/" are safe.
-    if io.open("/tmp/yazi-ext-hidden", "r") then
+    -- gate on the per-dir marker of the CURRENT cwd (same scheme as the
+    -- ext-toggle writer); fallback = parent of the previewed folder
+    local cache_dir = (os.getenv("XDG_CACHE_HOME") or (os.getenv("HOME") .. "/.cache")) .. "/yazi-ext"
+    local okc, cwdp = pcall(function() return tostring(cx.active.current.cwd) end)
+    if not (okc and cwdp) then
+      cwdp = tostring(job.file.url):match("^(.*)/")
+    end
+    local hh = 5381
+    for i = 1, #(cwdp or "") do
+      hh = (hh * 33 + cwdp:byte(i)) % 4294967296
+    end
+    if io.open(cache_dir .. "/" .. string.format("%08x", hh), "r") then
       local esc, out = string.char(27), {}
       for raw in (slice .. "\n"):gmatch("(.-)\n") do
         local ln = raw:gsub("(%S-)%.([%w_+%-]+)(" .. esc .. "%[[%d;]*m?)%s*$", "%1%3")
