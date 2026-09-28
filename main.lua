@@ -899,7 +899,11 @@ function M:peek(job)
     for i = 1, #(cwdp or "") do
       hh = (hh * 33 + cwdp:byte(i)) % 4294967296
     end
-    if io.open(cache_dir .. "/" .. string.format("%08x", hh), "r") then
+    local marker_path = cache_dir .. "/" .. string.format("%08x", hh)
+    local marker_f = io.open(marker_path, "r")
+    local hide_ext = marker_f ~= nil
+    if marker_f then marker_f:close() end
+    if hide_ext then
       local esc, out = string.char(27), {}
       for raw in (slice .. "\n"):gmatch("(.-)\n") do
         local ln = raw:gsub("(%S-)%.([%w_+%-]+)(" .. esc .. "%[[%d;]*m?)%s*$", "%1%3")
