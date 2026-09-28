@@ -877,10 +877,16 @@ function M:peek(job)
     -- gate on the per-dir marker of the CURRENT cwd (same scheme as the
     -- ext-toggle writer); fallback = parent of the previewed folder
     local cache_dir = (os.getenv("XDG_CACHE_HOME") or (os.getenv("HOME") .. "/.cache")) .. "/yazi-ext"
-    local okc, cwdp = pcall(function() return tostring(cx.active.current.cwd) end)
-    if not (okc and cwdp) then
+    local okc, cwdp = pcall(function()
+      local cur = cx.active.current
+      local v = cur.cwd
+      if type(v) == "function" then v = cur:cwd() end
+      return v and tostring(v) or nil
+    end)
+    if not okc or not cwdp or cwdp:match("^function:") then
       cwdp = tostring(job.file.url):match("^(.*)/")
     end
+    if cwdp and #cwdp > 1 then cwdp = cwdp:gsub("/+$", "") end
     local hh = 5381
     for i = 1, #(cwdp or "") do
       hh = (hh * 33 + cwdp:byte(i)) % 4294967296
