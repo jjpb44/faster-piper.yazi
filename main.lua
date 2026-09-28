@@ -879,15 +879,20 @@ function M:peek(job)
     local cache_dir = (os.getenv("XDG_CACHE_HOME") or (os.getenv("HOME") .. "/.cache")) .. "/yazi-ext"
     -- Match the writer: extension visibility follows the directory being browsed.
     local cwdp
-    local okc, v = pcall(function()
-      local cur = cx.active.current
-      local path = cur.cwd
-      if type(path) == "function" then path = cur:cwd() end
-      return path and tostring(path) or nil
-    end)
-    if okc and v and not v:match("^function:") then cwdp = v end
-    if not cwdp then
+    local okd, is_dir = pcall(function() return job.file.cha.is_dir end)
+    if okd and is_dir then
+      -- A folder's preview lists its children; use the directory being browsed
+      -- (the folder's parent), which is the cwd ext-toggle records.
       cwdp = tostring(job.file.url):match("^(.*)/")
+    else
+      local okc, v = pcall(function()
+        local cur = cx.active.current
+        local path = cur.cwd
+        if type(path) == "function" then path = cur:cwd() end
+        return path and tostring(path) or nil
+      end)
+      if okc and v and not v:match("^function:") then cwdp = v end
+      if not cwdp then cwdp = tostring(job.file.url):match("^(.*)/") end
     end
     if cwdp and #cwdp > 1 then cwdp = cwdp:gsub("/+$", "") end
     local hh = 5381
