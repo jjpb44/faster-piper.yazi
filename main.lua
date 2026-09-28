@@ -877,21 +877,15 @@ function M:peek(job)
     -- gate on the per-dir marker of the CURRENT cwd (same scheme as the
     -- ext-toggle writer); fallback = parent of the previewed folder
     local cache_dir = (os.getenv("XDG_CACHE_HOME") or (os.getenv("HOME") .. "/.cache")) .. "/yazi-ext"
-    -- A directory listing belongs to the previewed directory's preference,
-    -- not the parent cwd. File-text previews follow the current directory.
-    local okd, is_dir = pcall(function() return job.file.cha.is_dir end)
+    -- Match the writer: extension visibility follows the directory being browsed.
     local cwdp
-    if okd and is_dir then
-      cwdp = tostring(job.file.url)
-    else
-      local okc, v = pcall(function()
-        local cur = cx.active.current
-        local path = cur.cwd
-        if type(path) == "function" then path = cur:cwd() end
-        return path and tostring(path) or nil
-      end)
-      if okc and v and not v:match("^function:") then cwdp = v end
-    end
+    local okc, v = pcall(function()
+      local cur = cx.active.current
+      local path = cur.cwd
+      if type(path) == "function" then path = cur:cwd() end
+      return path and tostring(path) or nil
+    end)
+    if okc and v and not v:match("^function:") then cwdp = v end
     if not cwdp then
       cwdp = tostring(job.file.url):match("^(.*)/")
     end
